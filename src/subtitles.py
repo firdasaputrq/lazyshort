@@ -1,58 +1,54 @@
 import os
+import numpy as np
 from moviepy.config import change_settings
-from moviepy.editor import TextClip, CompositeVideoClip
+from moviepy.editor import TextClip, CompositeVideoClip, ColorClip, ImageClip
 
-# Configure ImageMagick path if provided (needed on Windows)
 magick_path = os.getenv("IMAGEMAGICK_BINARY")
 if magick_path:
     change_settings({"IMAGEMAGICK_BINARY": magick_path})
 
+VIDEO_W, VIDEO_H = 1080, 1920
+FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
 
 def styled_subtitle(text, duration, word_timings=None):
-    timings = word_timings or []
-    fontsize = 60
-    # Default to Windows bold Arial if available; otherwise fall back to a common Linux font
-    default_font = "C:\\Windows\\Fonts\\arialbd.ttf" if os.name == "nt" else "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    font = os.getenv("SUBTITLE_FONT_PATH", default_font)
+    fontsize = 58
+    font = os.getenv("SUBTITLE_FONT_PATH", FONT)
 
-    if not timings:
-        caption = (
-            TextClip(
-                txt=text,
-                fontsize=fontsize,
-                font=font,
-                color="yellow",
-                stroke_color="black",
-                stroke_width=3,
-                method="caption",
-                size=(900, None),
-            )
-            .set_duration(duration)
-            .set_position(("center", "bottom"))
-            .margin(bottom=60)
+    txt_clip = (
+        TextClip(
+            txt=text,
+            fontsize=fontsize,
+            font=font,
+            color="white",
+            stroke_color="black",
+            stroke_width=2,
+            method="caption",
+            size=(940, None),
+            align="center",
         )
-        return caption
+        .set_duration(duration)
+    )
 
-    word_clips = []
-    for word_info in timings:
-        word = word_info["word"]
-        start_time = word_info["start"] / 1000
-        word_duration = word_info["duration"] / 1000
+    # Semi-transparent background box
+    pad = 24
+    box_w = 940 + pad * 2
+    box_h = txt_clip.h + pad * 2
 
-        word_clip = (
-            TextClip(
-                txt=word,
-                fontsize=fontsize,
-                font=font,
-                color="yellow",
-                stroke_color="black",
-                stroke_width=3,
-            )
-            .set_start(start_time)
-            .set_duration(word_duration)
-            .set_position(("center", "bottom"))
-        )
-        word_clips.append(word_clip)
+    box_arr = np.zeros((box_h, box_w, 4), dtype=np.uint8)
+    box_arr[:, :, 3] = 160  # alpha
 
-    subtitle_clip = CompositeVideoClip(word_clips).set_duration(duration).margin(bottom=60)
-    return subtitle_clip
+    from PIL import Image
+    pil_box = Image.fromarray(box_arr, 'RGBA')
+    box_rgb = np.array(pil_box.convert('RGB'))
+
+    box_clip = (
+        ImageClip(box_rgb, ismask=False)
+        .set_duration(duration)
+        .set_opacity(0.6)
+        .set_position(("center", VIDEO_H - box_h - 120))
+    )
+
+    txt_clip = txt_clip.set_position(("center", VIDEO_H - box_h - 120 + pad))
+
+    return CompositeVideoClip([box_clip, txt_clip], size=(VIDEO_W, VIDEO_H))
