@@ -54,7 +54,40 @@ def clean_prompt(raw):
 
 def parse_script(script_path):
     with open(script_path, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip()]
-    if len(lines) % 2 != 0:
-        raise ValueError("Script should have even number of lines.")
-    return [(clean_prompt(lines[i]), lines[i+1]) for i in range(0, len(lines), 2)]
+        raw_lines = [line.strip() for line in f if line.strip()]
+
+    # Pisahkan baris [image] dan narasi
+    image_lines = []
+    narration_lines = []
+
+    i = 0
+    while i < len(raw_lines):
+        line = raw_lines[i]
+        if line.startswith("[") and line.endswith("]"):
+            image_lines.append(line)
+            # Ambil baris berikutnya sebagai narasi
+            if i + 1 < len(raw_lines):
+                next_line = raw_lines[i + 1]
+                if not (next_line.startswith("[") and next_line.endswith("]")):
+                    narration_lines.append(next_line)
+                    i += 2
+                    continue
+                else:
+                    # Dua [image] berturut-turut, skip yang kedua
+                    narration_lines.append("...")
+                    i += 1
+                    continue
+            else:
+                narration_lines.append("...")
+                i += 1
+        else:
+            i += 1
+
+    # Pastikan jumlah seimbang
+    min_len = min(len(image_lines), len(narration_lines))
+    pairs = [(clean_prompt(image_lines[j]), narration_lines[j]) for j in range(min_len)]
+
+    if not pairs:
+        raise ValueError("Script tidak valid: tidak ada pasangan [image] + narasi.")
+
+    return pairs
