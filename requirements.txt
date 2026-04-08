@@ -9,7 +9,8 @@ requests
 python-dotenv
 
 # AI Script Generator (GRATIS - Gemini Flash)
-google-generativeai
+#google-generativeai
+google-genai
 
 # TTS - Text to Speech (GRATIS - Microsoft Edge TTS)
 edge-tts
