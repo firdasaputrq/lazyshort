@@ -35,7 +35,6 @@ def get_credentials():
         scopes=["https://www.googleapis.com/auth/youtube.upload"],
     )
 
-    # Refresh token untuk dapat access token baru
     creds.refresh(Request())
     return creds
 
@@ -43,7 +42,7 @@ def get_credentials():
 def upload_to_youtube(video_path, title=None, description=None, tags=None):
     """
     Upload video ke YouTube.
-    
+
     Args:
         video_path: Path ke file MP4
         title: Judul video (auto-generate jika None)
@@ -57,23 +56,27 @@ def upload_to_youtube(video_path, title=None, description=None, tags=None):
     creds = get_credentials()
     youtube = build("youtube", "v3", credentials=creds)
 
-    # Auto-generate title dengan tanggal jika tidak disediakan
-    today = datetime.datetime.now().strftime("%B %d, %Y")
     if title is None:
-        title = f"Did You Know? Anime Facts | {today} #shorts"
+        title = "Anime Facts You Didn't Know 🔥 #shorts"
 
     if description is None:
         description = (
-            "Amazing anime facts you probably didn't know! 🔥\n\n"
-            "#anime #animefacts #didyouknow #shorts #naruto #onepiece #attackontitan\n\n"
-            "Subscribe for daily anime content! 🔔"
+            "#shorts #anime #animefacts\n\n"
+            "🔥 Did you know this about anime? Mind-blowing facts from Naruto, One Piece, and Attack on Titan!\n\n"
+            "👉 Subscribe for daily anime facts!\n"
+            "🔔 Turn on notifications so you never miss a video!\n\n"
+            "📌 Tags:\n"
+            "#anime #naruto #onepiece #attackontitan #animeshorts "
+            "#animefacts #didyouknow #animetrivia #otaku #animelover"
         )
 
     if tags is None:
         tags = [
-            "anime", "animefacts", "didyouknow", "shorts",
-            "naruto", "onepiece", "attackontitan", "animeshorts",
-            "animetrivia", "funfacts"
+            "anime", "anime facts", "did you know anime",
+            "naruto facts", "one piece facts", "attack on titan facts",
+            "anime shorts", "anime trivia", "otaku", "anime lover",
+            "anime 2024", "shorts", "viral anime", "anime moments",
+            "animefacts"
         ]
 
     body = {
@@ -81,11 +84,11 @@ def upload_to_youtube(video_path, title=None, description=None, tags=None):
             "title": title,
             "description": description,
             "tags": tags,
-            "categoryId": "24",  # Entertainment
+            "categoryId": "24",
             "defaultLanguage": "en",
         },
         "status": {
-            "privacyStatus": "public",  # Ganti ke "private" untuk test dulu
+            "privacyStatus": "public",
             "selfDeclaredMadeForKids": False,
             "madeForKids": False,
         },
@@ -95,7 +98,7 @@ def upload_to_youtube(video_path, title=None, description=None, tags=None):
         video_path,
         mimetype="video/mp4",
         resumable=True,
-        chunksize=1024 * 1024 * 5,  # 5MB per chunk
+        chunksize=1024 * 1024 * 5,
     )
 
     print(f"[YT] Mengupload: {title}")
