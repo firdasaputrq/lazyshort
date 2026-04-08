@@ -35,11 +35,12 @@ def generate_anime_script():
 
     response = None
 
-    # Urutan model: coba yang lebih baru dulu, fallback ke yang lama
+    # Urutan model: dari yang paling ringan quota-nya
+    # gemini-2.0-flash-lite punya free tier lebih besar dari gemini-2.0-flash
     models_to_try = [
+        "gemini-2.0-flash-lite",
         "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-8b",
+        "gemini-2.5-flash-preview-04-17",
     ]
 
     for model_name in models_to_try:
@@ -55,12 +56,12 @@ def generate_anime_script():
             except Exception as e:
                 err_str = str(e)
                 print(f"Gemini error ({model_name}, attempt {attempt+1}): {err_str[:200]}")
-                # Jika quota habis (limit: 0), langsung coba model berikutnya
-                if "limit: 0" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    if attempt == 0:
-                        time.sleep(5)
-                    else:
-                        break  # quota habis untuk model ini, skip ke model berikutnya
+                if "404" in err_str or "NOT_FOUND" in err_str:
+                    break  # model tidak ada, langsung skip
+                elif "limit: 0" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    time.sleep(5)
+                    if attempt >= 1:
+                        break  # quota habis untuk model ini, coba model berikutnya
                 else:
                     time.sleep(15)
         if response is not None:
@@ -68,10 +69,12 @@ def generate_anime_script():
 
     if response is None:
         raise RuntimeError(
-            "Semua model Gemini gagal. Kemungkinan penyebab:\n"
-            "1. Quota free tier habis - tunggu reset besok\n"
-            "2. API key salah atau belum aktif\n"
-            "3. Cek https://ai.dev/rate-limit untuk status quota kamu"
+            "Semua model Gemini gagal.\n"
+            "Solusi:\n"
+            "1. Buka https://aistudio.google.com/apikey - pastikan API key aktif\n"
+            "2. Buka https://ai.dev/rate-limit - cek sisa quota kamu\n"
+            "3. Quota free tier reset setiap hari, coba lagi besok\n"
+            "4. Atau aktifkan billing di Google Cloud untuk quota lebih besar"
         )
 
     script_text = response.text.strip()
