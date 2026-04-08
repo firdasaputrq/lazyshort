@@ -16,6 +16,7 @@ groq
 
 # TTS - Text to Speech (GRATIS - Microsoft Edge TTS)
 edge-tts
+gtts
 
 # Image Search (GRATIS - DuckDuckGo)
 duckduckgo-search
