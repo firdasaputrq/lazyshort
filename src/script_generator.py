@@ -40,7 +40,7 @@ def generate_anime_script():
     models_to_try = [
         "gemini-2.0-flash-lite",
         "gemini-2.0-flash",
-        "gemini-2.5-flash-preview-04-17",
+        "gemini-1.5-flash",   # ← ganti ini, model stabil & punya quota terpisah
     ]
 
     for model_name in models_to_try:
