@@ -17,39 +17,38 @@ VIDEO_W, VIDEO_H = 1080, 1920  # portrait/shorts format
 
 def make_kenburns(image_path, duration, zoom_start=1.0, zoom_end=1.15, direction="in"):
     """Apply Ken Burns zoom effect to an image clip."""
-    img = ImageClip(image_path)
+    from PIL import Image as PILImage
 
-    # Scale image to fill the frame
+    img = ImageClip(image_path)
     scale = max(VIDEO_W / img.w, VIDEO_H / img.h) * 1.2
     img = img.resize(scale)
 
+    # Pre-load frame sebagai numpy array
+    base_frame = img.get_frame(0)
+    h, w = base_frame.shape[:2]
+
     def make_frame(t):
-        progress = t / duration
+        progress = t / duration if duration > 0 else 0
         if direction == "in":
             zoom = zoom_start + (zoom_end - zoom_start) * progress
         else:
             zoom = zoom_end - (zoom_end - zoom_start) * progress
 
-        frame = img.get_frame(0)
-        h, w = frame.shape[:2]
-
         new_w = int(w / zoom)
         new_h = int(h / zoom)
 
-        # Pan slightly from center
         x_offset = int((w - new_w) * 0.5 + (w - new_w) * 0.1 * progress)
         y_offset = int((h - new_h) * 0.5)
 
         x_offset = max(0, min(x_offset, w - new_w))
         y_offset = max(0, min(y_offset, h - new_h))
 
-        cropped = frame[y_offset:y_offset+new_h, x_offset:x_offset+new_w]
-
-        from PIL import Image
-        pil = Image.fromarray(cropped).resize((VIDEO_W, VIDEO_H), Image.LANCZOS)
+        cropped = base_frame[y_offset:y_offset+new_h, x_offset:x_offset+new_w]
+        pil = PILImage.fromarray(cropped).resize((VIDEO_W, VIDEO_H), PILImage.LANCZOS)
         return np.array(pil)
 
-    return ImageClip(make_frame, duration=duration, ismask=False)
+    from moviepy.editor import VideoClip
+    return VideoClip(make_frame, duration=duration)
 
 
 def load_clips(segments, use_audio=True):
