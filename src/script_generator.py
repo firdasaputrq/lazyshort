@@ -11,7 +11,7 @@ def generate_anime_script():
             "GEMINI_API_KEY tidak ditemukan. Daftar gratis di https://aistudio.google.com/apikey"
         )
 
-    genai.configure(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel(
         model_name="gemini-1.5-flash",
         system_instruction=(
@@ -39,7 +39,10 @@ def generate_anime_script():
 
     for i in range(5):
         try:
-            response = model.generate_content(user_prompt)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=user_prompt
+            )
             break
         except Exception as e:
             print("Gemini error:", e)
