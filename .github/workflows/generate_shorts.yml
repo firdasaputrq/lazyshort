@@ -52,8 +52,9 @@ jobs:
         run: |
           sudo apt-get install -y imagemagick
           convert --version | head -1
-          # Fix ImageMagick policy yang memblokir PDF/font rendering
+          # Fix semua ImageMagick policy restrictions
           sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
+          sudo sed -i 's/<policy domain="path" rights="none" pattern="@\*"\/>/<policy domain="path" rights="read|write" pattern="@*"\/>/' /etc/ImageMagick-6/policy.xml || true
 
       # ── 5. Install Python dependencies ───────────────────
       - name: Install Python dependencies
