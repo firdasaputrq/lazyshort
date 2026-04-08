@@ -11,7 +11,10 @@ def generate_anime_script():
             "GEMINI_API_KEY tidak ditemukan."
         )
 
-    genai.configure(api_key=GEMINI_API_KEY)
+    genai.configure(
+    api_key=GEMINI_API_KEY,
+    client_options={"api_endpoint": "generativelanguage.googleapis.com"}
+    )
 
     user_prompt = (
         "You are a scriptwriter for short-form anime trivia content. "
@@ -33,10 +36,10 @@ def generate_anime_script():
 
     response = None
     models_to_try = [
-        "gemini-2.0-flash-lite",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
     ]
 
     for model_name in models_to_try:
