@@ -7,7 +7,9 @@ PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY")
 
 def fetch_image_url(query, max_attempts=5):
     print(f"[IMG] Mencari gambar untuk: '{query}'")
-    for search_query in (query, "anime art", "anime background"):
+    # Sederhanakan query - ambil 2 kata pertama saja untuk Pixabay
+    simple_query = " ".join(query.split()[:3])
+    for search_query in (simple_query, "japanese animation", "fantasy landscape"):
         try:
             url = "https://pixabay.com/api/"
             params = {
