@@ -1,6 +1,6 @@
 import os
 import re
-import google.generativeai as genai
+from google import genai
 from src.config import GEMINI_API_KEY, SCRIPT_PATH
 
 
