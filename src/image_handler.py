@@ -15,7 +15,7 @@ def fetch_image_url(query, max_attempts=5):
             params = {
                 "key": PIXABAY_API_KEY,
                 "q": search_query,
-                "image_type": "photo",
+                "image_type": "all",
                 "per_page": max_attempts * 2,
                 "safesearch": "true",
             }
