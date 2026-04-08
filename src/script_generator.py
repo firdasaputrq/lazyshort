@@ -5,6 +5,7 @@ from src.config import GEMINI_API_KEY, SCRIPT_PATH
 
 
 def generate_anime_script():
+    print("Gemini key length:", len(GEMINI_API_KEY))
     if not GEMINI_API_KEY:
         raise EnvironmentError(
             "GEMINI_API_KEY tidak ditemukan. Daftar gratis di https://aistudio.google.com/apikey"
@@ -12,7 +13,7 @@ def generate_anime_script():
 
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
+        model_name="gemini-1.5-flash",
         system_instruction=(
             "You are a scriptwriter for short-form anime trivia content. Your job is to write 60-second 'Did You Know?' style scripts for fans of ONE specific anime (Naruto, One Piece, or Attack on Titan). "
             "Each script should focus on one obscure, surprising, or strange fact — not a summary or moral. "
@@ -34,7 +35,15 @@ def generate_anime_script():
         "Keep it 10-12 lines total, no intro/outro."
     )
 
-    response = model.generate_content(user_prompt)
+    import time
+
+    for i in range(5):
+        try:
+            response = model.generate_content(user_prompt)
+            break
+        except Exception as e:
+            print("Gemini error:", e)
+            time.sleep(15)
     script_text = response.text.strip()
     script_text = re.sub(r"(\[[^\]]+\])\s+(?!\n)", r"\1\n", script_text)
 
