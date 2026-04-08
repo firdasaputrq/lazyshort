@@ -65,6 +65,7 @@ jobs:
       - name: Generate anime short video
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: |
           if [ "${{ github.event.inputs.no_audio }}" = "true" ]; then
             echo "Menjalankan tanpa audio..."
