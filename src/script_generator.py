@@ -30,8 +30,9 @@ def generate_anime_script():
     )
     response = None
     models_to_try = [
-    "gemini-2.5-flash-preview-05-20",  # model yang aktif di key kamu
-    "gemini-2.5-pro-preview-05-06",    # fallback
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-2.5-flash-preview-05-20",
     ]
     for model_name in models_to_try:
         print(f"Mencoba model: {model_name}")
