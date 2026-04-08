@@ -1,0 +1,23 @@
+# Video rendering
+moviepy==1.0.3
+pillow==9.5.0
+
+# HTTP requests
+requests
+
+# Environment variables
+python-dotenv
+
+# AI Script Generator (GRATIS - Gemini Flash)
+google-generativeai
+
+# TTS - Text to Speech (GRATIS - Microsoft Edge TTS)
+edge-tts
+
+# Image Search (GRATIS - DuckDuckGo)
+duckduckgo-search
+
+# YouTube Upload
+google-api-python-client
+google-auth
+google-auth-oauthlib
