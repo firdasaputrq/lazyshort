@@ -75,3 +75,17 @@ def generate_anime_script():
     with open(SCRIPT_PATH, "w", encoding="utf-8") as f:
         f.write(script_text)
     print(f"[OK] Script berhasil digenerate: {SCRIPT_PATH}")
+
+def parse_script(script_path):
+    with open(script_path, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+    if len(lines) % 2 != 0:
+        raise ValueError("Script should have even number of lines.")
+    return [(clean_prompt(lines[i]), lines[i+1]) for i in range(0, len(lines), 2)]
+
+def clean_prompt(raw):
+    raw = raw.strip("[]")
+    for prefix in ["Scene:", "Final shot:", "Opening:", "Shot:"]:
+        if raw.lower().startswith(prefix.lower()):
+            return raw[len(prefix):].strip()
+    return raw
