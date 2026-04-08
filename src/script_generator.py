@@ -1,81 +1,94 @@
-import os
-import re
-import time
-from google import genai
-from src.config import GEMINI_API_KEY, SCRIPT_PATH
+name: Generate & Upload Anime Shorts
 
+on:
+  # ──────────────────────────────────────────
+  # Jadwal otomatis - sesuaikan sesuai kebutuhan
+  # Jam menggunakan UTC. Indonesia (WIB) = UTC+7
+  # Contoh: "0 1 * * *" = jam 08:00 WIB setiap hari
+  # ──────────────────────────────────────────
+  schedule:
+    - cron: "0 1 * * *"   # 08:00 WIB setiap hari
 
-def generate_anime_script():
-    print("Gemini key length:", len(GEMINI_API_KEY))
+  # Bisa juga dijalankan manual dari GitHub UI
+  workflow_dispatch:
+    inputs:
+      no_audio:
+        description: "Skip TTS (generate tanpa narasi)"
+        required: false
+        default: "false"
+        type: boolean
+      skip_upload:
+        description: "Skip upload ke YouTube"
+        required: false
+        default: "false"
+        type: boolean
 
-    if not GEMINI_API_KEY:
-        raise EnvironmentError(
-            "GEMINI_API_KEY tidak ditemukan. Daftar gratis di https://aistudio.google.com/apikey"
-        )
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    steps:
+      # ── 1. Checkout repo ──────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    user_prompt = (
-        "You are a scriptwriter for short-form anime trivia content. "
-        "Write a 60-second 'Did You Know?' style script about ONE surprising fact from Naruto, One Piece, or Attack on Titan. "
-        "Structure the script as alternating lines:\n\n"
-        "[image search prompt]\n"
-        "narration sentence\n\n"
-        "Rules:\n"
-        "- Total 10–12 lines\n"
-        "- Each image prompt must be specific but searchable\n"
-        "- Use character names, actions, or objects\n"
-        "- No intros, no outros, no narrator labels\n"
-        "- Focus only on the trivia fact\n\n"
-        "Example prompts:\n"
-        "[naruto young sasuke with family]\n"
-        "[one piece luffy showing scar]\n"
-        "[attack on titan zeke yelling]"
-    )
+      # ── 2. Setup Python 3.11 ──────────────────────────────
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-    response = None
+      # ── 3. Install FFmpeg ─────────────────────────────────
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -1
 
-    # retry jika Gemini error / quota sementara
-    for i in range(5):
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=user_prompt
-            )
-            break
-        except Exception as e:
-            print("Gemini error:", e)
-            time.sleep(15)
+      # ── 4. Install ImageMagick (untuk subtitle MoviePy) ───
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get install -y imagemagick
+          convert --version | head -1
+          # Fix ImageMagick policy yang memblokir PDF/font rendering
+          sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
 
-    if response is None:
-        raise RuntimeError("Gemini gagal setelah 5 percobaan")
+      # ── 5. Install Python dependencies ───────────────────
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-    script_text = response.text.strip()
+      # ── 6. Generate video ─────────────────────────────────
+      - name: Generate anime short video
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.no_audio }}" = "true" ]; then
+            echo "Menjalankan tanpa audio..."
+            python main.py --no-audio
+          else
+            echo "Menjalankan dengan audio (edge-tts)..."
+            python main.py
+          fi
 
-    # memastikan format [image] berada di baris sendiri
-    script_text = re.sub(r"(\[[^\]]+\])\s+(?!\n)", r"\1\n", script_text)
+      # ── 7. Upload ke YouTube ──────────────────────────────
+      - name: Upload ke YouTube
+        if: ${{ github.event.inputs.skip_upload != 'true' }}
+        env:
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+        run: |
+          python main.py --skip-script --upload
+        # --skip-script: video sudah ada, langsung upload saja
 
-    os.makedirs(os.path.dirname(SCRIPT_PATH), exist_ok=True)
-
-    with open(SCRIPT_PATH, "w", encoding="utf-8") as f:
-        f.write(script_text)
-
-    print(f"[OK] Script berhasil digenerate: {SCRIPT_PATH}")
-
-
-def clean_prompt(raw):
-    raw = raw.strip("[]")
-    for prefix in ["Scene:", "Final shot:", "Opening:", "Shot:"]:
-        if raw.lower().startswith(prefix.lower()):
-            return raw[len(prefix):].strip()
-    return raw
-
-
-def parse_script(script_path):
-    with open(script_path, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip()]
-
-    if len(lines) % 2 != 0:
-        raise ValueError("Script should have even number of lines.")
-
-    return [(clean_prompt(lines[i]), lines[i+1]) for i in range(0, len(lines), 2)]
+      # ── 8. Simpan video sebagai artifact (opsional) ───────
+      # Berguna untuk download / debug jika upload gagal
+      - name: Upload video as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anime-short-${{ github.run_number }}
+          path: output/final_video.mp4
+          retention-days: 3
