@@ -22,7 +22,7 @@ def generate_anime_script():
         "[image search prompt]\n"
         "narration sentence\n\n"
         "Rules:\n"
-        "- Total 10–12 lines\n"
+        "- Total 10-12 lines\n"
         "- Each image prompt must be specific but searchable\n"
         "- Use character names, actions, or objects\n"
         "- No intros, no outros, no narrator labels\n"
@@ -35,20 +35,44 @@ def generate_anime_script():
 
     response = None
 
-    # retry jika Gemini error / quota sementara
-    for i in range(5):
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=user_prompt
-            )
+    # Urutan model: coba yang lebih baru dulu, fallback ke yang lama
+    models_to_try = [
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-8b",
+    ]
+
+    for model_name in models_to_try:
+        print(f"Mencoba model: {model_name}")
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=user_prompt
+                )
+                print(f"[OK] Berhasil dengan model: {model_name}")
+                break
+            except Exception as e:
+                err_str = str(e)
+                print(f"Gemini error ({model_name}, attempt {attempt+1}): {err_str[:200]}")
+                # Jika quota habis (limit: 0), langsung coba model berikutnya
+                if "limit: 0" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    if attempt == 0:
+                        time.sleep(5)
+                    else:
+                        break  # quota habis untuk model ini, skip ke model berikutnya
+                else:
+                    time.sleep(15)
+        if response is not None:
             break
-        except Exception as e:
-            print("Gemini error:", e)
-            time.sleep(15)
 
     if response is None:
-        raise RuntimeError("Gemini gagal setelah 5 percobaan")
+        raise RuntimeError(
+            "Semua model Gemini gagal. Kemungkinan penyebab:\n"
+            "1. Quota free tier habis - tunggu reset besok\n"
+            "2. API key salah atau belum aktif\n"
+            "3. Cek https://ai.dev/rate-limit untuk status quota kamu"
+        )
 
     script_text = response.text.strip()
 
